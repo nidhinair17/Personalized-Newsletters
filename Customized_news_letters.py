@@ -5,9 +5,13 @@ from transformers import pipeline
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import os
+import torch
 
 # Summarization model
-summarizer = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
+@st.cache_resource
+def load_summarizer():
+    device = 0 if torch.cuda.is_available() else -1
+    return pipeline("summarization", model="sshleifer/distilbart-cnn-12-6", device=device)
 
 # --- User Profiles ---
 user_profiles = {
@@ -89,7 +93,14 @@ def score_articles_by_interests(articles, interests):
     return [a for score, a in scored_articles[:5]]
 
 # --- Summarizer ---
+# def summarize(text, max_len=100):
+#     try:
+#         return summarizer(text[:1024], max_length=max_len, min_length=30, do_sample=False)[0]['summary_text']
+#     except Exception:
+#         return text[:200] + "..."
+
 def summarize(text, max_len=100):
+    summarizer = load_summarizer()
     try:
         return summarizer(text[:1024], max_length=max_len, min_length=30, do_sample=False)[0]['summary_text']
     except Exception:
